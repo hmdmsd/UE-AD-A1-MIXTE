@@ -1,18 +1,44 @@
 version: "3.9"
 services:
+  frontend:
+    build: ./frontend/
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+
   movie:
     build: ./movie/
     ports:
       - "3200:3200"
-  # showtime:
-  #   build: ./showtime/
-  #   ports:
-  #     - "3202:3202"
+    volumes:
+      - ./movie:/app
+    depends_on:
+      - showtime
+      - user
+
+  showtime:
+    build: ./showtime/
+    ports:
+      - "3202:3202"
+    volumes:
+      - ./showtime:/app
+    depends_on:
+      - user
+
   user:
     build: ./user/
     ports:
       - "3203:3203"
-  # booking:
-  #   build: ./booking/
-  #   ports:
-  #       - "3201:3201"
+    volumes:
+      - ./user:/app
+
+  booking:
+    build: ./booking/
+    ports:
+      - "3201:3201"
+    volumes:
+      - ./booking:/app
+    depends_on:
+      - movie
+      - showtime

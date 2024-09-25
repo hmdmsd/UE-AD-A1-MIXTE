@@ -4,10 +4,12 @@ from ariadne import graphql_sync, make_executable_schema, load_schema_from_path,
 from flask import Flask, request, jsonify, make_response
 import resolvers as r
 import json
+from flask_cors import CORS
 
 PORT = 3200
 HOST = '0.0.0.0'
 app = Flask(__name__)
+CORS(app)
 
 # Load movie data
 with open('./data/movies.json', 'r') as jsf:
