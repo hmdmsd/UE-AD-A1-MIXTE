@@ -17,7 +17,7 @@ def home():
 # graphql entry points
 @app.route('/graphql', methods=['POST'])
 def graphql_server():
-    # todo to complete
+    pass
 
 if __name__ == "__main__":
     print("Server running in port %s"%(PORT))
