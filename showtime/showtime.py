@@ -5,9 +5,10 @@ import showtime_pb2_grpc
 import json
 
 class ShowtimeServicer(showtime_pb2_grpc.ShowtimeServicer):
-    def __init__(self):
+    def __init__(self, port):
         with open('{}/data/times.json'.format("."), "r") as jsf:
             self.db = json.load(jsf)["schedule"]
+        self.port = port
 
     def GetSchedule(self, request, context):
         schedule = showtime_pb2.Schedule()
@@ -26,9 +27,12 @@ class ShowtimeServicer(showtime_pb2_grpc.ShowtimeServicer):
         return showtime_pb2.MovieSchedule()
 
 def serve():
+    port = '3002'
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    showtime_pb2_grpc.add_ShowtimeServicer_to_server(ShowtimeServicer(), server)
-    server.add_insecure_port('[::]:3002')
+    showtime_pb2_grpc.add_ShowtimeServicer_to_server(ShowtimeServicer(port), server)
+    insecure_port = f'[::]:{port}'
+    server.add_insecure_port(insecure_port)
+    print(f"[INFO] Server running on port: {insecure_port}")
     server.start()
     server.wait_for_termination()
 

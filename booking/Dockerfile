@@ -9,6 +9,7 @@ COPY . /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Generate gRPC Python files
+# Generate gRPC Python files
 RUN python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. *.proto
 
 # CMD command for running the service

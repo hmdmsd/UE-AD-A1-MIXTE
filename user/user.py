@@ -4,6 +4,12 @@ from flask_jwt_extended import JWTManager, create_access_token, jwt_required, ge
 import json
 import requests
 
+import grpc
+
+import booking_pb2
+import booking_pb2_grpc
+
+
 app = Flask(__name__)
 CORS(app)
 
@@ -69,12 +75,39 @@ def get_user_movies(userid):
             return make_response(jsonify(movies), 200)
     return make_response(jsonify({"error": "User not found"}), 400)
 
+def get_bookings_by_user(stub, userid):
+    user_bookings = stub.GetUserBookings(userid)
+
+    bookings_dict = {
+        "userid": user_bookings.userid,
+        "dates": []
+    }
+
+    for date in user_bookings.dates:
+        bookings_dict["dates"].append({
+            "date": date.date,
+            "movie_ids": list(date.movie_ids)
+        })
+
+    return bookings_dict
+
 @app.route("/users/<userid>/bookings", methods=['GET'])
 def get_user_bookings(userid):
-    # This remains unchanged as it's using gRPC
-    # You would implement the gRPC call to the booking service here
-    return make_response(jsonify({"error": "Not implemented"}), 501)
+    with grpc.insecure_channel('localhost:3001') as channel:
+        stub = booking_pb2_grpc.BookingStub(channel)
+
+        print("-------------- GetUserBookings --------------")
+        userid = booking_pb2.UserID(userid=userid)
+        user_bookings = get_bookings_by_user(stub, userid)
+
+        print(dict(user_bookings))
+        
+        return make_response(jsonify(user_bookings), 200)
+
+    channel.close()
+    return jsonify({"error": "Backend error"}), 501
+
 
 if __name__ == "__main__":
     print("Server running in port %s"%(PORT))
-    app.run(host=HOST, port=PORT)
+    app.run(host=HOST, port=PORT, debug=True)
