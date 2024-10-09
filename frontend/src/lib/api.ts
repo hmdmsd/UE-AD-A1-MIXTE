@@ -17,11 +17,12 @@ interface Movie {
   director: string;
 }
 
-interface Booking {
-  id: string;
-  userId: string;
-  movieId: string;
-  date: string;
+interface BookingResponse {
+  dates: {
+    date: string;
+    movie_ids: string[];
+  }[];
+  userid: string;
 }
 
 // Helper function to handle API responses
@@ -70,13 +71,15 @@ export async function fetchUserMovies(userId: string): Promise<Movie[]> {
 }
 
 // API function to fetch bookings for a user
-export async function fetchUserBookings(userId: string): Promise<Booking[]> {
+export async function fetchUserBookings(
+  userId: string
+): Promise<BookingResponse> {
   const response = await fetch(`${API_URL}/users/${userId}/bookings`, {
     headers: {
-      Authorization: `Bearer ${getToken()}`, // Include the token in the headers
+      Authorization: `Bearer ${getToken()}`,
     },
   });
-  return handleResponse<Booking[]>(response);
+  return handleResponse<BookingResponse>(response);
 }
 
 // API function to fetch all movies (this might need to be implemented on the backend)
