@@ -1,40 +1,41 @@
 version: "3.9"
+
 services:
-  frontend:
-    build: ./frontend/
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./frontend:/app
+  # frontend:
+  #   build: ./frontend/
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     - user
+  #     - movie
 
   movie:
     build: ./movie/
     ports:
       - "3200:3200"
-    volumes:
-      - ./movie:/app
-    depends_on:
-      - showtime
-      - user
 
   showtime:
     build: ./showtime/
     ports:
       - "3202:3202"
-    depends_on:
-      - user
+    environment:
+      - PYTHONUNBUFFERED=1
 
   user:
     build: ./user/
     ports:
       - "3203:3203"
-    volumes:
-      - ./user:/app
+    depends_on:
+      - booking
+      - movie
+    environment:
+      - PYTHONUNBUFFERED=1
 
   booking:
     build: ./booking/
     ports:
       - "3201:3201"
     depends_on:
-      - movie
       - showtime
+    environment:
+      - PYTHONUNBUFFERED=1

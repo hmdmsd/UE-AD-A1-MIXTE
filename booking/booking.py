@@ -11,7 +11,7 @@ class BookingServicer(booking_pb2_grpc.BookingServicer):
             self.db = json.load(jsf)["bookings"]
 
         # Connect to the Showtime service as a client
-        self.showtime_channel = grpc.insecure_channel('localhost:3002')
+        self.showtime_channel = grpc.insecure_channel('showtime:3202')
         self.showtime_stub = showtime_pb2_grpc.ShowtimeStub(self.showtime_channel)
 
     def GetBookings(self, request, context):
@@ -137,13 +137,13 @@ class BookingServicer(booking_pb2_grpc.BookingServicer):
         return booking_pb2.UserBooking()
 
 def serve():
-    insecure_port='[::]:3001'
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     booking_pb2_grpc.add_BookingServicer_to_server(BookingServicer(), server)
-    server.add_insecure_port(insecure_port)
-    print(f"[INFO] Server running in: {insecure_port}")
+    server.add_insecure_port('[::]:3201')
+    print("[INFO] Booking Server running on port 3201")
     server.start()
     server.wait_for_termination()
 
 if __name__ == '__main__':
+    print("Starting booking service...")
     serve()

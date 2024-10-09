@@ -93,19 +93,31 @@ def get_bookings_by_user(stub, userid):
 
 @app.route("/users/<userid>/bookings", methods=['GET'])
 def get_user_bookings(userid):
-    with grpc.insecure_channel('localhost:3001') as channel:
-        stub = booking_pb2_grpc.BookingStub(channel)
-
-        print("-------------- GetUserBookings --------------")
-        userid = booking_pb2.UserID(userid=userid)
-        user_bookings = get_bookings_by_user(stub, userid)
-
-        print(dict(user_bookings))
-        
-        return make_response(jsonify(user_bookings), 200)
-
-    channel.close()
-    return jsonify({"error": "Backend error"}), 501
+    try:
+        with grpc.insecure_channel('booking:3201') as channel:
+            stub = booking_pb2_grpc.BookingStub(channel)
+            
+            print(f"-------------- GetUserBookings for {userid} --------------")
+            user_id = booking_pb2.UserID(userid=userid)
+            user_bookings = stub.GetUserBookings(user_id)
+            
+            bookings_dict = {
+                "userid": user_bookings.userid,
+                "dates": [{
+                    "date": date.date,
+                    "movie_ids": list(date.movie_ids)
+                } for date in user_bookings.dates]
+            }
+            
+            print(f"User bookings: {bookings_dict}")
+            
+            return make_response(jsonify(bookings_dict), 200)
+    except grpc.RpcError as e:
+        print(f"gRPC error: {e.code()}, {e.details()}")
+        return jsonify({"error": f"Booking service error: {e.details()}"}), 500
+    except Exception as e:
+        print(f"Unexpected error: {str(e)}")
+        return jsonify({"error": "Internal server error"}), 500
 
 
 if __name__ == "__main__":
