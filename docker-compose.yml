@@ -1,13 +1,10 @@
 version: "3.9"
 
 services:
-  # frontend:
-  #   build: ./frontend/
-  #   ports:
-  #     - "3000:3000"
-  #   depends_on:
-  #     - user
-  #     - movie
+  frontend:
+    build: ./frontend/
+    ports:
+      - "3000:3000"
 
   movie:
     build: ./movie/
@@ -39,3 +36,17 @@ services:
       - showtime
     environment:
       - PYTHONUNBUFFERED=1
+
+  mongo_db:
+    image: mongo:latest
+    container_name: mongo_db
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: examplepassword
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data:

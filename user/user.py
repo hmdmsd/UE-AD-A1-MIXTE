@@ -9,6 +9,8 @@ import grpc
 import booking_pb2
 import booking_pb2_grpc
 
+import json
+from pymongo import MongoClient
 
 app = Flask(__name__)
 CORS(app)
@@ -20,8 +22,27 @@ jwt = JWTManager(app)
 PORT = 3203
 HOST = '0.0.0.0'
 
+# MongoDB connection (assuming MongoDB is running at 'mongo_db' on the default port 27017)
+client = MongoClient('mongodb://root:examplepassword@mongo_db:27017/')
+
+#mongosh --username=root --password=examplepassword
+
+# Access the desired database (replace 'mydatabase' with your database name)
+db = client['mydatabase']
+
+# Access the collection (replace 'users_collection' with your collection name)
+users = db['users_collection']
+
+# Load data from the JSON file
 with open('./data/users.json', "r") as jsf:
-    users = json.load(jsf)["users"]
+    _users = json.load(jsf)["users"]
+
+# Insert the data into the MongoDB collection
+if _users:
+    users.insert_many(_users)
+    print("Users inserted successfully!")
+else:
+    print("No users found in the JSON file.")
 
 @app.route("/", methods=['GET'])
 def home():
