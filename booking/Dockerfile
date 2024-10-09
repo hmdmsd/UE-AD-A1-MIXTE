@@ -2,15 +2,14 @@ FROM python:3.12
 
 WORKDIR /app
 
-COPY requirements.txt /app/
-RUN pip install --no-cache-dir -r requirements.txt
-
+# Copy all files
 COPY . /app/
 
-# Nettoyage des anciens fichiers générés
-RUN rm -f *_pb2.py *_pb2_grpc.py
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Génération des fichiers gRPC avec la version installée de protobuf
+# Generate gRPC Python files
 RUN python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. *.proto
 
+# CMD command for running the service
 CMD ["python", "-u", "booking.py"]

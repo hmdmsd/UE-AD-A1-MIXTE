@@ -21,8 +21,6 @@ services:
     build: ./showtime/
     ports:
       - "3202:3202"
-    volumes:
-      - ./showtime:/app
     depends_on:
       - user
 
@@ -37,8 +35,6 @@ services:
     build: ./booking/
     ports:
       - "3201:3201"
-    volumes:
-      - ./booking:/app
     depends_on:
       - movie
       - showtime
