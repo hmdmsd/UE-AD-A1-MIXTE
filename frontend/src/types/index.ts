@@ -1,18 +1,19 @@
+export interface User {
+  id: string;
+  name: string;
+  last_active: number;
+}
+
 export interface Movie {
-  id: number;
+  id: string;
   title: string;
   rating: number;
   director: string;
 }
 
-export interface User {
-  id: number;
-  name: string;
-  email: string;
-}
-
 export interface Booking {
-  id: number;
-  movieTitle: string;
-  showtime: string;
+  id: string;
+  userId: string;
+  movieId: string;
+  date: string;
 }

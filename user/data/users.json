@@ -3,37 +3,51 @@
     {
       "id": "chris_rivers",
       "name": "Chris Rivers",
-      "last_active":1360031010
+      "last_active": 1360031010,
+      "email": "chris@example.com",
+      "password": "password123"
     },
     {
       "id": "peter_curley",
       "name": "Peter Curley",
-      "last_active": 1360031222
+      "last_active": 1360031222,
+      "email": "peter@example.com",
+      "password": "password123"
     },
     {
       "id": "garret_heaton",
       "name": "Garret Heaton",
-      "last_active": 1360031425
+      "last_active": 1360031425,
+      "email": "garret@example.com",
+      "password": "password123"
     },
     {
       "id": "michael_scott",
       "name": "Michael Scott",
-      "last_active": 1360031625
+      "last_active": 1360031625,
+      "email": "michael@example.com",
+      "password": "password123"
     },
     {
       "id": "jim_halpert",
       "name": "Jim Halpert",
-      "last_active": 1360031325
+      "last_active": 1360031325,
+      "email": "jim@example.com",
+      "password": "password123"
     },
     {
       "id": "pam_beesly",
       "name": "Pam Beesly",
-      "last_active": 1360031225
+      "last_active": 1360031225,
+      "email": "pam@example.com",
+      "password": "password123"
     },
     {
       "id": "dwight_schrute",
       "name": "Dwight Schrute",
-      "last_active": 1360031202
+      "last_active": 1360031202,
+      "email": "dwight@example.com",
+      "password": "password123"
     }
   ]
 }
