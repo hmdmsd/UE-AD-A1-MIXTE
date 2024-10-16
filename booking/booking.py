@@ -6,7 +6,7 @@ import showtime_pb2_grpc
 import showtime_pb2
 from concurrent import futures
 import json
-from booking.db import MongoDBClient
+from db import MongoDBClient
 
 class BookingServicer(booking_pb2_grpc.BookingServicer):
     def __init__(self):

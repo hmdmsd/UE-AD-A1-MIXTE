@@ -8,6 +8,7 @@ import booking_pb2
 import booking_pb2_grpc
 import json
 from db import MongoDBClient
+from bson import json_util
 
 app = Flask(__name__)
 CORS(app)
@@ -22,7 +23,7 @@ HOST = '0.0.0.0'
 #mongosh --username=root --password=examplepassword
 
 db = MongoDBClient()
-users = db.get_collection('users_collection')
+users_collection = db.get_collection('users_collection')
 
 # Load data from the JSON file
 with open('./data/users.json', "r") as jsf:
@@ -30,13 +31,15 @@ with open('./data/users.json', "r") as jsf:
 
 # Insert the data into the MongoDB collection
 if _users:
-    if users.count_documents({}) == 0:  # Efficient count query for MongoDB
-        users.insert_many(_users)
+    if users_collection.count_documents({}) == 0:  # Efficient count query for MongoDB
+        users_collection.insert_many(_users)
         print(f"{len(_users)} users inserted successfully!")
     else:
         print("Users collection already populated.")
 else:
     print("No users found in the provided data.")
+
+users = list(users_collection.find({}))
 
 @app.route("/", methods=['GET'])
 def home():
@@ -58,14 +61,15 @@ def login():
 @app.route("/users", methods=['GET'])
 @jwt_required()
 def get_users():
-    return make_response(jsonify(users), 200)
+    users = list(users_collection.find({}))  # Busca todos os usuários
+    return make_response(json_util.dumps(users), 200)  # Serializa o resultado em JSON
 
 @app.route("/users/<userid>", methods=['GET'])
 @jwt_required()
 def get_user(userid):
-    for user in users:
-        if str(user["id"]) == str(userid):
-            return make_response(jsonify(user), 200)
+    user = users_collection.find_one({"id": userid})  # Busca um usuário específico
+    if user:
+        return make_response(json_util.dumps(user), 200)  # Serializa o resultado em JSON
     return make_response(jsonify({"error": "User not found"}), 404)
 
 @app.route("/users/<userid>/movies", methods=['GET'])
@@ -134,6 +138,40 @@ def get_user_bookings(userid):
         print(f"Unexpected error: {str(e)}")
         return jsonify({"error": "Internal server error"}), 500
 
+@app.route("/bookings/showtimes", methods=['GET'])
+def get_showtimes_from_bookings():
+    # Obtendo a data a partir da query string
+    date = request.args.get('date')
+
+    if not date:
+        return jsonify({"error": "Date is required"}), 400
+
+    try:
+        with grpc.insecure_channel('booking:3201') as channel:
+            stub = booking_pb2_grpc.BookingStub(channel)
+
+            print(f"-------------- GetShowtimeMovies for Date: {date} --------------")
+            
+            # Criando uma requisição gRPC com a data fornecida
+            showtime_request = booking_pb2.Date(date=date)
+            movie_schedule = stub.GetShowtimeMovies(showtime_request)
+
+            # Estrutura de resposta a ser retornada
+            showtimes_dict = {
+                "date": movie_schedule.date,
+                "movie_ids": list(movie_schedule.movie_ids)
+            }
+
+            print(f"Movie schedule for {date}: {showtimes_dict}")
+
+            return make_response(jsonify(showtimes_dict), 200)
+
+    except grpc.RpcError as e:
+        print(f"gRPC error: {e.code()}, {e.details()}")
+        return jsonify({"error": f"Booking service error: {e.details()}"}), 500
+    except Exception as e:
+        print(f"Unexpected error: {str(e)}")
+        return jsonify({"error": "Internal server error"}), 500
 
 if __name__ == "__main__":
     print("Server running in port %s"%(PORT))
