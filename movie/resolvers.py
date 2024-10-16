@@ -1,37 +1,44 @@
-# resolvers.py
+def resolve_movies(_, info):
+    movies_collection = info.context["movies"]
+    # Fetch all movies and convert to a list
+    movies = list(movies_collection.find({}))
+    return movies
 
-def resolve_movies(obj, info):
-    return info.context["movies"]
+def resolve_movie(_, info, id):
+    movies_collection = info.context["movies"]
+    # Find movie by string id
+    movie = movies_collection.find_one({"id": id})
+    return movie
 
-def resolve_movie(obj, info, id):
-    movies = info.context["movies"]
-    return next((movie for movie in movies if movie["id"] == id), None)
-
-def resolve_create_movie(obj, info, id, title, rating, director):
-    movies = info.context["movies"]
-    if any(movie["id"] == id for movie in movies):
-        raise ValueError("A movie with this id already exists")
+def resolve_create_movie(_, info, id, title, rating, director):
+    movies_collection = info.context["movies"]
+    # Check if a movie with the same id already exists
+    if movies_collection.find_one({"id": id}):
+        raise ValueError("A movie with this ID already exists")
+    
     new_movie = {
-        "id": id,
+        "id": id,  # Store UUID as a string
         "title": title,
         "rating": rating,
         "director": director
     }
-    movies.append(new_movie)
+    
+    # Insert the new movie into the collection
+    movies_collection.insert_one(new_movie)
     return new_movie
 
-def resolve_update_movie_rating(obj, info, id, rating):
-    movies = info.context["movies"]
-    movie = next((movie for movie in movies if movie["id"] == id), None)
-    if movie:
-        movie["rating"] = rating
-        return movie
-    return None
+def resolve_update_movie_rating(_, info, id, rating):
+    movies_collection = info.context["movies"]
+    # Update the movie's rating
+    result = movies_collection.find_one_and_update(
+        {"id": id},  # Query by string id
+        {"$set": {"rating": rating}},
+        return_document=True
+    )
+    return result
 
-def resolve_delete_movie(obj, info, id):
-    movies = info.context["movies"]
-    movie = next((movie for movie in movies if movie["id"] == id), None)
-    if movie:
-        movies.remove(movie)
-        return True
-    return False
+def resolve_delete_movie(_, info, id):
+    movies_collection = info.context["movies"]
+    # Remove the movie by string id
+    result = movies_collection.delete_one({"id": id})
+    return result.deleted_count > 0

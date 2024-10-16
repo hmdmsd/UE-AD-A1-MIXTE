@@ -1,14 +1,33 @@
+from pymongo import MongoClient
 import grpc
+import booking_pb2
+import booking_pb2_grpc
+import showtime_pb2_grpc
+import showtime_pb2
 from concurrent import futures
 import json
-import booking_pb2, booking_pb2_grpc
-import showtime_pb2, showtime_pb2_grpc
+from booking.db import MongoDBClient
 
 class BookingServicer(booking_pb2_grpc.BookingServicer):
     def __init__(self):
-        # Load bookings data from the JSON file
-        with open('{}/data/bookings.json'.format("."), "r") as jsf:
-            self.db = json.load(jsf)["bookings"]
+        # Connect to MongoDB
+
+        db = MongoDBClient()
+
+        self.bookings_collection = db.get_collection('bookings_collection') 
+
+        # Load bookings data from the JSON file if the collection is empty
+        with open('./data/bookings.json', "r") as jsf:
+            _bookings = json.load(jsf)["bookings"]
+
+        if _bookings:
+            if self.bookings_collection.count_documents({}) == 0:
+                self.bookings_collection.insert_many(_bookings)
+                print(f"{len(_bookings)} bookings inserted successfully!")
+            else:
+                print("Bookings collection already populated.")
+        else:
+            print("No bookings found in the provided data.")
 
         # Connect to the Showtime service as a client
         self.showtime_channel = grpc.insecure_channel('showtime:3202')
@@ -16,7 +35,8 @@ class BookingServicer(booking_pb2_grpc.BookingServicer):
 
     def GetBookings(self, request, context):
         booking_list = booking_pb2.BookingList()
-        for booking in self.db:
+        cursor = self.bookings_collection.find({})  # Fetch all bookings from MongoDB
+        for booking in cursor:
             user_booking = booking_list.bookings.add()
             user_booking.userid = booking['userid']
             for date in booking['dates']:
@@ -39,7 +59,6 @@ class BookingServicer(booking_pb2_grpc.BookingServicer):
 
     def GetShowtimeMovies(self, request, context):
         """RPC method to fetch movie schedule from Showtime."""
-        # Call the Showtime service to get movie schedules by date
         showtime_request = showtime_pb2.Date(date=request.date)
         
         try:
@@ -56,15 +75,14 @@ class BookingServicer(booking_pb2_grpc.BookingServicer):
 
     def GetUserBookings(self, request, context):
         """Fetch bookings for a specific user."""
-        for booking in self.db:
-            if booking['userid'] == request.userid:
-                user_booking = booking_pb2.UserBooking(userid=booking['userid'])
-                for date in booking['dates']:
-                    movie_booking = user_booking.dates.add()
-                    movie_booking.date = date['date']
-                    movie_booking.movie_ids.extend(date['movies'])
-                        
-                return user_booking
+        booking = self.bookings_collection.find_one({"userid": request.userid})  # Find a booking by user ID
+        if booking:
+            user_booking = booking_pb2.UserBooking(userid=booking['userid'])
+            for date in booking['dates']:
+                movie_booking = user_booking.dates.add()
+                movie_booking.date = date['date']
+                movie_booking.movie_ids.extend(date['movies'])
+            return user_booking
         context.set_code(grpc.StatusCode.NOT_FOUND)
         context.set_details('No bookings found for the given user')
         return booking_pb2.UserBooking()
@@ -81,53 +99,65 @@ class BookingServicer(booking_pb2_grpc.BookingServicer):
             return booking_pb2.UserBooking()
 
         # Add booking logic
-        for booking in self.db:
-            if booking['userid'] == request.userid:
-                for date in booking['dates']:
-                    if date['date'] == request.date:
-                        if request.movieid not in date['movies']:
-                            date['movies'].append(request.movieid)
-                        else:
-                            context.set_code(grpc.StatusCode.ALREADY_EXISTS)
-                            context.set_details('Booking already exists')
-                            return booking_pb2.UserBooking()
-                        break
-                else:
-                    booking['dates'].append({'date': request.date, 'movies': [request.movieid]})
-                break
+        booking = self.bookings_collection.find_one({"userid": request.userid})
+        if booking:
+            for date in booking['dates']:
+                if date['date'] == request.date:
+                    if request.movieid not in date['movies']:
+                        date['movies'].append(request.movieid)
+                        self.bookings_collection.update_one(
+                            {"userid": request.userid, "dates.date": request.date},
+                            {"$set": {"dates.$.movies": date['movies']}}
+                        )
+                    else:
+                        context.set_code(grpc.StatusCode.ALREADY_EXISTS)
+                        context.set_details('Booking already exists')
+                        return booking_pb2.UserBooking()
+                    break
+            else:
+                booking['dates'].append({'date': request.date, 'movies': [request.movieid]})
+                self.bookings_collection.update_one(
+                    {"userid": request.userid},
+                    {"$set": {"dates": booking['dates']}}
+                )
         else:
             new_booking = {
                 'userid': request.userid,
                 'dates': [{'date': request.date, 'movies': [request.movieid]}]
             }
-            self.db.append(new_booking)
+            self.bookings_collection.insert_one(new_booking)
 
         return self.GetUserBookings(booking_pb2.UserID(userid=request.userid), context)
     
     def RemoveBooking(self, request, context):
         """Remove a booking for a user."""
-        for booking in self.db:
-            if booking['userid'] == request.userid:
-                for date in booking['dates']:
-                    if date['date'] == request.date:
-                        if request.movieid in date['movies']:
-                            # Remove the movie from the booking
-                            date['movies'].remove(request.movieid)
+        booking = self.bookings_collection.find_one({"userid": request.userid})
+        if booking:
+            for date in booking['dates']:
+                if date['date'] == request.date:
+                    if request.movieid in date['movies']:
+                        # Remove the movie from the booking
+                        date['movies'].remove(request.movieid)
 
-                            # If no movies remain on that date, remove the date
-                            if not date['movies']:
-                                booking['dates'].remove(date)
+                        # If no movies remain on that date, remove the date
+                        if not date['movies']:
+                            booking['dates'].remove(date)
 
-                            # If no dates remain for the user, remove the entire booking
-                            if not booking['dates']:
-                                self.db.remove(booking)
-
-                            # Return updated user bookings
-                            return self.GetUserBookings(booking_pb2.UserID(userid=request.userid), context)
+                        # Update or remove the booking from MongoDB
+                        if not booking['dates']:
+                            self.bookings_collection.delete_one({"userid": request.userid})
                         else:
-                            context.set_code(grpc.StatusCode.NOT_FOUND)
-                            context.set_details('Movie not found in booking')
-                            return booking_pb2.UserBooking()
+                            self.bookings_collection.update_one(
+                                {"userid": request.userid},
+                                {"$set": {"dates": booking['dates']}}
+                            )
+
+                        # Return updated user bookings
+                        return self.GetUserBookings(booking_pb2.UserID(userid=request.userid), context)
+                    else:
+                        context.set_code(grpc.StatusCode.NOT_FOUND)
+                        context.set_details('Movie not found in booking')
+                        return booking_pb2.UserBooking()
                 else:
                     context.set_code(grpc.StatusCode.NOT_FOUND)
                     context.set_details('Date not found in booking')

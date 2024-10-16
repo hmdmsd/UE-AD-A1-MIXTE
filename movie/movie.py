@@ -5,15 +5,31 @@ from flask import Flask, request, jsonify, make_response
 import resolvers as r
 import json
 from flask_cors import CORS
+from pymongo import MongoClient
+from db import MongoDBClient
 
 PORT = 3200
 HOST = '0.0.0.0'
 app = Flask(__name__)
 CORS(app)
 
-# Load movie data
+
+#mongosh --username=root --password=examplepassword
+
+db = MongoDBClient()
+movies = db.get_collection('movies_collection')
+
 with open('./data/movies.json', 'r') as jsf:
-    movies = json.load(jsf)["movies"]
+    _movies = json.load(jsf)["movies"]
+
+if _movies:
+    if movies.count_documents({}) == 0:  # Efficient count query for MongoDB
+        movies.insert_many(_movies)
+        print(f"{len(_movies)} movies inserted successfully!")
+    else:
+        print("Movies collection already populated.")
+else:
+    print("No movies found in the provided data.")
 
 # Create type definitions
 type_defs = load_schema_from_path("movie.graphql")
