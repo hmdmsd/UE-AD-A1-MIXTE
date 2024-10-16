@@ -2,51 +2,113 @@ version: "3.9"
 
 services:
   frontend:
-    build: ./frontend/
+    build: ./frontend
     ports:
       - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+    env_file:
+      - .env
+    depends_on:
+      - user
 
   movie:
-    build: ./movie/
+    build: ./movie
     ports:
-      - "3200:3200"
-
-  showtime:
-    build: ./showtime/
-    ports:
-      - "3202:3202"
+      - "${MOVIE_PORT}:${MOVIE_PORT}"
     environment:
-      - PYTHONUNBUFFERED=1
+      - MONGO_USERNAME=${MONGO_USERNAME}
+      - MONGO_PASSWORD=${MONGO_PASSWORD}
+      - MONGO_HOST=${MONGO_HOST}
+      - MONGO_PORT=${MONGO_PORT}
+      - MONGO_DATABASE=${MONGO_DATABASE}
+      - MOVIE_PORT=${MOVIE_PORT}
+      - PYTHONPATH=/app:/app/common
+    env_file:
+      - .env
+    depends_on:
+      - mongo_db
+    volumes:
+      - ./common:/app/common
 
   user:
-    build: ./user/
+    build: ./user
     ports:
-      - "3203:3203"
+      - "${USER_PORT}:${USER_PORT}"
+    environment:
+      - MONGO_USERNAME=${MONGO_USERNAME}
+      - MONGO_PASSWORD=${MONGO_PASSWORD}
+      - MONGO_HOST=${MONGO_HOST}
+      - MONGO_PORT=${MONGO_PORT}
+      - MONGO_DATABASE=${MONGO_DATABASE}
+      - USER_PORT=${USER_PORT}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - BOOKING_HOST=${BOOKING_HOST}
+      - BOOKING_PORT=${BOOKING_PORT}
+      - MOVIE_HOST=${MOVIE_HOST}
+      - MOVIE_PORT=${MOVIE_PORT}
+      - PYTHONPATH=/app:/app/common
+    env_file:
+      - .env
     depends_on:
+      - mongo_db
       - booking
       - movie
-    environment:
-      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./common:/app/common
 
   booking:
-    build: ./booking/
+    build: ./booking
     ports:
-      - "3201:3201"
-    depends_on:
-      - showtime
+      - "${BOOKING_PORT}:${BOOKING_PORT}"
     environment:
-      - PYTHONUNBUFFERED=1
+      - MONGO_USERNAME=${MONGO_USERNAME}
+      - MONGO_PASSWORD=${MONGO_PASSWORD}
+      - MONGO_HOST=${MONGO_HOST}
+      - MONGO_PORT=${MONGO_PORT}
+      - MONGO_DATABASE=${MONGO_DATABASE}
+      - BOOKING_PORT=${BOOKING_PORT}
+      - SHOWTIME_HOST=${SHOWTIME_HOST}
+      - SHOWTIME_PORT=${SHOWTIME_PORT}
+      - PYTHONPATH=/app:/app/common
+    env_file:
+      - .env
+    depends_on:
+      - mongo_db
+      - showtime
+    volumes:
+      - ./common:/app/common
+
+  showtime:
+    build: ./showtime
+    ports:
+      - "${SHOWTIME_PORT}:${SHOWTIME_PORT}"
+    environment:
+      - MONGO_USERNAME=${MONGO_USERNAME}
+      - MONGO_PASSWORD=${MONGO_PASSWORD}
+      - MONGO_HOST=${MONGO_HOST}
+      - MONGO_PORT=${MONGO_PORT}
+      - MONGO_DATABASE=${MONGO_DATABASE}
+      - SHOWTIME_PORT=${SHOWTIME_PORT}
+      - PYTHONPATH=/app:/app/common
+    env_file:
+      - .env
+    depends_on:
+      - mongo_db
+    volumes:
+      - ./common:/app/common
 
   mongo_db:
     image: mongo:latest
-    container_name: mongo_db
     ports:
-      - "27017:27017"
+      - "${MONGO_PORT}:${MONGO_PORT}"
     environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: examplepassword
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
     volumes:
       - mongo_data:/data/db
+    env_file:
+      - .env
 
 volumes:
   mongo_data:

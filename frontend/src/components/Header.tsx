@@ -42,6 +42,7 @@ const Header = () => {
     { href: "/movies", icon: Film, label: "Movies" },
     { href: "/profile", icon: User, label: "Profile" },
     { href: "/bookings", icon: Ticket, label: "Bookings" },
+    { href: "/showtimes", icon: Ticket, label: "Showtimes" },
   ];
 
   const toggleSearch = () => {

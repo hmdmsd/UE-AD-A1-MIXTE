@@ -1,20 +1,19 @@
-# movie.py
-
 from ariadne import graphql_sync, make_executable_schema, load_schema_from_path, ObjectType, QueryType, MutationType
 from flask import Flask, request, jsonify, make_response
 import resolvers as r
 import json
 from flask_cors import CORS
-from pymongo import MongoClient
-from db import MongoDBClient
+from common.db import MongoDBClient
+import os
+from dotenv import load_dotenv
 
-PORT = 3200
-HOST = '0.0.0.0'
+# Load environment variables
+load_dotenv()
+
+PORT = int(os.getenv('MOVIE_PORT', 3200))
+HOST = os.getenv('MOVIE_HOST', '0.0.0.0')
 app = Flask(__name__)
 CORS(app)
-
-
-#mongosh --username=root --password=examplepassword
 
 db = MongoDBClient()
 movies = db.get_collection('movies_collection')
@@ -23,7 +22,7 @@ with open('./data/movies.json', 'r') as jsf:
     _movies = json.load(jsf)["movies"]
 
 if _movies:
-    if movies.count_documents({}) == 0:  # Efficient count query for MongoDB
+    if movies.count_documents({}) == 0:
         movies.insert_many(_movies)
         print(f"{len(_movies)} movies inserted successfully!")
     else:

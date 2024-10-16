@@ -17,6 +17,12 @@ interface Movie {
   director: string;
 }
 
+interface ShowtimeResponse {
+  date: string;
+  booked_movie_ids: string[];
+  all_movie_ids: string[];
+}
+
 interface BookingResponse {
   dates: {
     date: string;
@@ -47,6 +53,17 @@ export async function fetchUsers(): Promise<User[]> {
     },
   });
   return handleResponse<User[]>(response);
+}
+
+export async function fetchUserShowtimes(
+  userId: string
+): Promise<ShowtimeResponse[]> {
+  const response = await fetch(`${API_URL}/users/${userId}/showtimes`, {
+    headers: {
+      Authorization: `Bearer ${getToken()}`,
+    },
+  });
+  return handleResponse<ShowtimeResponse[]>(response);
 }
 
 // API function to fetch a single user

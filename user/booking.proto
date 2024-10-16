@@ -6,6 +6,7 @@ service Booking {
   rpc GetBookings (Empty) returns (BookingList) {}
   rpc GetUserBookings (UserID) returns (UserBooking) {}
   rpc AddBooking (BookingRequest) returns (UserBooking) {}
+  rpc GetUserBookingsWithShowtimes (UserID) returns (UserBookingWithShowtimes) {}
 }
 
 message Empty {}
@@ -32,4 +33,15 @@ message UserBooking {
 
 message BookingList {
   repeated UserBooking bookings = 1;
+}
+
+message MovieBookingWithShowtime {
+  string date = 1;
+  repeated string movie_ids = 2;
+  repeated string all_movie_ids = 3;
+}
+
+message UserBookingWithShowtimes {
+  string userid = 1;
+  repeated MovieBookingWithShowtime dates = 2;
 }

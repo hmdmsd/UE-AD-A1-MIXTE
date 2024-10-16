@@ -2,14 +2,15 @@ FROM python:3.12
 
 WORKDIR /app
 
-# Copy all files
-COPY . /app/
-
-# Install dependencies
+# Copy requirements first for better caching
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Ensure grpcio-tools is installed with the latest version
 RUN pip install --upgrade grpcio-tools
+
+# Copy all files from the user directory
+COPY . .
 
 # Generate gRPC Python files
 RUN python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. booking.proto
